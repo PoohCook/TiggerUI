@@ -16,6 +16,8 @@ import javax.swing.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.time.DynamicTimeSeriesCollection;
 
 public class MainFrame extends JFrame {
       
@@ -24,7 +26,11 @@ public class MainFrame extends JFrame {
     JPanel buttonPanel, fieldsPanel;
     JLabel filterSizeLbl, inputLbl, outputLbl;
     JTextField filterSizeFld, inputFld, outputFld;
-    JButton setFilterSizeBtn, sendBtn, closeBtn;
+    JButton setFilterSizeBtn, sendBtn, closeBtn, graphBtn;
+    
+    MafDeviceAdapter mafDev;
+    
+    TimeSeriesChart graphPanel = null;
 
     MainFrame() {
         
@@ -41,11 +47,12 @@ public class MainFrame extends JFrame {
         setFilterSizeBtn = new JButton("Set Filter Size");
         sendBtn = new JButton("Send");
         closeBtn = new JButton("Close");
+        graphBtn = new JButton("Graph");
         
         setFilterSizeBtn.addActionListener(new OpenBtnListener(this));
         sendBtn.addActionListener(new SendBtnListener(this));
         closeBtn.addActionListener(new CloseBtnListener(this));
-        
+        graphBtn.addActionListener(new GraphBtnListener(this));
         
         fieldsPanel.setLayout(new BoxLayout(fieldsPanel, BoxLayout.PAGE_AXIS));
         buttonPanel.setLayout(new FlowLayout());
@@ -59,10 +66,11 @@ public class MainFrame extends JFrame {
         fieldsPanel.add(inputFld);
         fieldsPanel.add(outputLbl);
         fieldsPanel.add(outputFld);
-        
+         
         buttonPanel.add(setFilterSizeBtn);
         buttonPanel.add(sendBtn);
         buttonPanel.add(closeBtn);
+        buttonPanel.add(graphBtn);
         
         this.add(fieldsPanel, BorderLayout.PAGE_START);
         this.add(buttonPanel, BorderLayout.PAGE_END);
@@ -70,11 +78,29 @@ public class MainFrame extends JFrame {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         //this.pack();
         this.setVisible(true);
+        
+        mafDev = new MafDeviceAdapter();
+        
     }
     
-    
-
+    class GraphBtnListener implements ActionListener{
         
+        MainFrame parent;
+        
+        public GraphBtnListener (MainFrame parent){
+            this.parent = parent;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent ae) {
+            
+            graphPanel = new TimeSeriesChart("Moving Average Filter Demo");
+            graphPanel.launchMe();
+            
+        }
+        
+    }
+     
     class OpenBtnListener implements ActionListener{
         
         MainFrame parent;
@@ -88,6 +114,8 @@ public class MainFrame extends JFrame {
             
             MafIoCtlAdapterJNI jni = new MafIoCtlAdapterJNI();
             int result = jni.SetBufferSize(Integer.parseInt(parent.filterSizeFld.getText()));
+            
+            if( graphPanel != null) graphPanel.refreshData();
             
         }
         
@@ -104,11 +132,9 @@ public class MainFrame extends JFrame {
         @Override
         public void actionPerformed(ActionEvent ae) {
             
-            MafDeviceAdapter dev = new MafDeviceAdapter();
+            parent.mafDev.Write(parent.inputFld.getText());
             
-            dev.Write(parent.inputFld.getText());
-            
-            parent.outputFld.setText(dev.Read(200));
+            parent.outputFld.setText(parent.mafDev.Read(200));
             
         }
         
